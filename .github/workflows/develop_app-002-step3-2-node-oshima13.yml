@@ -86,9 +86,9 @@ jobs:
             release.zip
             !venv/
 
-  deploy:
+  front-deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: front-build
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -113,7 +113,7 @@ jobs:
 
   back-deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: back-build
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
