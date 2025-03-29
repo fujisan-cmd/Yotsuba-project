@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - app-002-step3-2-node-oshima13
+name: Build and deploy Node.js app to Azure Web App app-002-step3-2-py-oshima13
 
 on:
   push:
@@ -18,28 +18,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
+      - name: Set up Python version
+        uses: actions/setup-python@v5
         with:
-          node-version: '20.x'
+          python-version: '3.12'
 
-      - name: npm install, build, and test
+      - name: Create and start virtual environment
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
-        working-directory: ./frontend
+          python -m venv venv
+          source venv/bin/activate
+      
+      - name: Install dependencies
+        run: |
+          source venv/bin/activate
+          pip install -r backend/requirements.txt
 
       - name: Zip artifact for deployment
         run: |
-          zip release.zip ./* -r
-        working-directory: .
+          source venv/bin/activate
+          zip -r release.zip ./* -x venv/**\*
 
-      - name: Upload artifact for deployment job
+      - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: ./release.zip # release.zipから修正
+          name: python-app
+          path: |
+            release.zip
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -52,16 +57,74 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: python-app
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
+
       
       - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
+        id: deploy-to-webapp
         with:
-          app-name: 'app-002-step3-2-node-oshima13'
+          app-name: 'app-002-step3-2-py-oshima13'
           slot-name: 'Production'
-          package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7003EB75F42A49C3AC9AD388F476A3A1 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_33F1FA6B9D7B4765B61A4FE5F89C0F73 }}
+          package: './backend'
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read #This is required for actions/checkout
+
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Set up Node.js version
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '20.x'
+
+#       - name: npm install, build, and test
+#         run: |
+#           npm install
+#           npm run build --if-present
+#           npm run test --if-present
+#         working-directory: ./frontend
+
+#       - name: Zip artifact for deployment
+#         run: |
+#           zip release.zip ./* -r
+#         working-directory: .
+
+#       - name: Upload artifact for deployment job
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: node-app
+#           path: ./release.zip # release.zipから修正
+
+#   deploy:
+#     runs-on: ubuntu-latest
+#     needs: build
+#     environment:
+#       name: 'Production'
+#       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
+#     steps:
+#       - name: Download artifact from build job
+#         uses: actions/download-artifact@v4
+#         with:
+#           name: node-app
+
+#       - name: Unzip artifact for deployment
+#         run: unzip release.zip
+      
+#       - name: 'Deploy to Azure Web App'
+#         id: deploy-to-webapp
+#         uses: azure/webapps-deploy@v3
+#         with:
+#           app-name: 'app-002-step3-2-node-oshima13'
+#           slot-name: 'Production'
+#           package: .
+#           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7003EB75F42A49C3AC9AD388F476A3A1 }}
