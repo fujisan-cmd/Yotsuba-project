@@ -34,7 +34,7 @@ jobs:
         run: |
           zip release.zip ./* -r
           ls -l # 追加
-        working-directory: ./frontend
+        working-directory: .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
