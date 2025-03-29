@@ -69,7 +69,7 @@ jobs:
         with:
           app-name: 'app-002-step3-2-py-oshima13'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_33F1FA6B9D7B4765B61A4FE5F89C0F73 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_52F96AB37D9B4C239622CD14208071F1 }}
           package: './backend'
 
 # jobs:
