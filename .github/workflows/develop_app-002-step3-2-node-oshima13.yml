@@ -35,8 +35,8 @@ jobs:
       - name: Copy artifact for deployment job
         run: |
           mkdir deploy
-          cp -r ./.next/standalone/. ./deploy
-          cp -r ./.next/static/. ./deploy/.next/static
+          cp -r frontend/.next/standalone/. ./deploy
+          cp -r frontend/.next/static/. ./deploy/.next/static
         working-directory: .
 
       - name: Zip artifact for deployment
