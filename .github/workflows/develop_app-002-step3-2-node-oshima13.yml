@@ -33,7 +33,6 @@ jobs:
       - name: Zip artifact for deployment
         run: |
           zip release.zip ./* -r
-          ls -l # 追加
         working-directory: .
 
       - name: Upload artifact for deployment job
@@ -64,5 +63,5 @@ jobs:
         with:
           app-name: 'app-002-step3-2-node-oshima13'
           slot-name: 'Production'
-          package: ./frontend
+          package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7003EB75F42A49C3AC9AD388F476A3A1 }}
