@@ -1,22 +1,23 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests
-import json
-import os
 from dotenv import load_dotenv
-from neo4j import GraphDatabase
+import os
+import pymysql
 
+# .envを読み込む
 load_dotenv()
 
-uri = os.getenv("NEO4J_URI")
-user = os.getenv("NEO4J_USER")
-password = os.getenv("NEO4J_PASSWORD")
-driver = GraphDatabase.driver(uri, auth=(user, password))
+# 環境変数から接続情報を取得
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = int(os.getenv("DB_PORT", 3306))
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
 
 app = FastAPI()
 
-# CORSミドルウェアの設定
+# CORS設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,43 +26,85 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def clear_db(tx):
-    tx.run('MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r')
+def get_connection():
+    return pymysql.connect(
+        host=DB_HOST,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        cursorclass=pymysql.cursors.DictCursor,
+        ssl={"ssl": {}}
+    )
 
-def add_person_node(tx, name):
-    tx.run('CREATE (p:Person {name: $name}) RETURN p', {'name': name})
-
-def add_friend_relationship(tx, name, friend_name=None):
-    if not friend_name:
-        tx.run('CREATE (p:Person {name: $name}) RETURN p', {'name': name})
-    else:
-        tx.run('MATCH (p:Person {name: $name}) '
-               'CREATE (p)-[:FRIEND]->(:Person {name: $friend_name})',
-               name=name, friend_name=friend_name)
-        
-def search_all(tx):
-    result = tx.run('MATCH (n) OPTIONAL MATCH (n)-[r]-() RETURN n,r')
-    return [r for r in result]
-
-def node_to_dict(node):
-    """Neo4jのNodeオブジェクトを辞書に変換"""
-    if isinstance(node, dict):  # すでに辞書ならそのまま
-        return node
-    elif hasattr(node, "items"):  # Nodeオブジェクトの場合
-        return dict(node.items())
-    return node  # そのまま返す
-
+# Pingテスト用
 @app.get("/")
 def index():
     return {"message": "Pong!"}
 
-@app.get("/graph_info")
-def get_graph_info():
-    with driver.session() as session:
-        session.execute_write(clear_db)
-        session.execute_write(add_person_node, 'Taro')
-        session.execute_write(add_person_node, 'Hanako')
-        session.execute_write(add_friend_relationship, 'Taro', 'Hanako')
-        result = session.execute_read(search_all)
-        json_str = json.dumps(result, default=node_to_dict, indent=2)
-    return json_str
+# マイページ取得API
+@app.get("/api/my_page/{user_id}")
+def get_my_page(user_id: int):
+    try:
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            # 基本情報 + 部署 + メールを取得
+            cursor.execute("""
+                SELECT 
+                    mp.name,
+                    d.name AS department,
+                    u.email,
+                    mp.self_introduction,
+                    mp.hobbies_skills
+                FROM my_pages mp
+                LEFT JOIN departments d ON mp.department_id = d.id
+                JOIN users u ON mp.user_id = u.id
+                WHERE mp.user_id = %s
+            """, (user_id,))
+            mypage = cursor.fetchone()
+
+            if not mypage:
+                raise HTTPException(status_code=404, detail="マイページが見つかりません")
+
+            # スキル取得（description付き）
+            cursor.execute("""
+                SELECT s.name, mps.type, mps.description
+                FROM my_page_skills mps
+                JOIN skills s ON mps.skill_id = s.id
+                WHERE mps.user_id = %s AND mps.deleted_at IS NULL
+            """, (user_id,))
+            skills = cursor.fetchall()
+            mypage["skills"] = {
+                "can": [
+                    {"name": s["name"], "description": s.get("description", "")}
+                    for s in skills if s["type"] == "can"
+                ],
+                "will": [
+                    {"name": s["name"], "description": s.get("description", "")}
+                    for s in skills if s["type"] == "will"
+                ]
+            }
+
+            # 経験取得（description付き）
+            cursor.execute("""
+                SELECT e.name, mpe.type, mpe.description
+                FROM my_page_experiences mpe
+                JOIN experiences e ON mpe.experience_id = e.id
+                WHERE mpe.user_id = %s AND mpe.deleted_at IS NULL
+            """, (user_id,))
+            experiences = cursor.fetchall()
+            mypage["experiences"] = {
+                "can": [
+                    {"name": e["name"], "description": e.get("description", "")}
+                    for e in experiences if e["type"] == "can"
+                ],
+                "will": [
+                    {"name": e["name"], "description": e.get("description", "")}
+                    for e in experiences if e["type"] == "will"
+                ]
+            }
+
+        conn.close()
+        return mypage
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
