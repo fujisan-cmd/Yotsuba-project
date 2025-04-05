@@ -1,0 +1,114 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: start; /* 上寄せ。縦中央にするなら center に */
+  min-height: 100vh;
+  background: #e6f7ff;
+  padding: 40px 0;
+}
+
+.pageWrapper {
+  width: 90%;
+  max-width: 1200px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.topButton,
+.mapButton {
+  background-color: #52c41a;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mainContent {
+  display: flex;
+  gap: 20px;
+}
+
+.profileCard {
+  flex: 1;
+  background: #dff3ff;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.photo {
+  width: 120px;
+  height: 120px;
+  background-color: white;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  border: 2px solid #91d5ff;
+}
+
+.profileInfo h2 {
+  font-size: 28px;
+  font-weight: bold;
+  margin: 0 0 8px 0;
+  color: #096dd9;
+}
+
+
+.detailSection {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.row {
+  display: flex;
+  gap: 20px;
+}
+
+.section {
+  flex: 1;
+  background: #f6ffed;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.section h3 {
+  margin-bottom: 10px;
+  color: #389e0d;
+}
+
+.itemList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.itemList li {
+  background: #e6fffb;
+  margin-bottom: 5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.itemList li:hover {
+  background: #bae7ff;
+}
+
+.tooltip {
+  position: fixed;
+  background: #000;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+}
