@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import styles from './MyPage.module.css';
+import { fetchMyPage } from './fetchtest'; // import
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
@@ -11,16 +12,13 @@ export default function MyPage() {
 
   useEffect(() => {
     if (API_ENDPOINT) {
-      fetch(`${API_ENDPOINT}/api/my_page/1`)
-        .then((res) => res.json())
+      fetchMyPage(1) // userId を渡す (ここでは固定値の '1' を使用)
         .then(setData)
         .catch(error => {
-          console.error("APIリクエストエラー:", error);
-          // エラーハンドリングを追加することも検討してください
+          console.error("マイページの取得に失敗しました:", error);
         });
     } else {
       console.warn("環境変数 NEXT_PUBLIC_API_ENDPOINT が設定されていません。");
-      // デフォルトのデータやエラーメッセージを表示するなどの処理を追加することも検討してください
     }
   }, []);
 
