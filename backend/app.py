@@ -150,3 +150,75 @@ def get_my_page(user_id: int):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+class SkillInput(BaseModel):
+    name: str
+    type: str  # can または will
+    description: str = ""
+
+class ExperienceInput(BaseModel):
+    name: str
+    type: str  # can または will
+    description: str = ""
+
+class MyPageCreateRequest(BaseModel):
+    user_id: int
+    name: str
+    department_id: int
+    self_introduction: str
+    hobbies_skills: str
+    email: str
+    skills: list[SkillInput] = []
+    experiences: list[ExperienceInput] = []
+
+@app.post("/api/my_page")
+def create_my_page(data: MyPageCreateRequest):
+    try:
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            # ユーザー登録（すでにいる場合はスキップしてOK）
+            cursor.execute("""
+                INSERT IGNORE INTO users (id, email)
+                VALUES (%s, %s)
+            """, (data.user_id, data.email))
+
+            # マイページ登録
+            cursor.execute("""
+                INSERT INTO my_pages (user_id, name, department_id, self_introduction, hobbies_skills)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (data.user_id, data.name, data.department_id, data.self_introduction, data.hobbies_skills))
+
+            # スキル登録
+            for skill in data.skills:
+                cursor.execute("SELECT id FROM skills WHERE name = %s", (skill.name,))
+                skill_row = cursor.fetchone()
+                if skill_row:
+                    skill_id = skill_row["id"]
+                else:
+                    cursor.execute("INSERT INTO skills (name) VALUES (%s)", (skill.name,))
+                    skill_id = cursor.lastrowid
+                cursor.execute("""
+                    INSERT INTO my_page_skills (user_id, skill_id, type, description)
+                    VALUES (%s, %s, %s, %s)
+                """, (data.user_id, skill_id, skill.type, skill.description))
+
+            # 経験登録
+            for exp in data.experiences:
+                cursor.execute("SELECT id FROM experiences WHERE name = %s", (exp.name,))
+                exp_row = cursor.fetchone()
+                if exp_row:
+                    exp_id = exp_row["id"]
+                else:
+                    cursor.execute("INSERT INTO experiences (name) VALUES (%s)", (exp.name,))
+                    exp_id = cursor.lastrowid
+                cursor.execute("""
+                    INSERT INTO my_page_experiences (user_id, experience_id, type, description)
+                    VALUES (%s, %s, %s, %s)
+                """, (data.user_id, exp_id, exp.type, exp.description))
+
+        conn.commit()
+        conn.close()
+        return {"message": "マイページを作成しました"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
