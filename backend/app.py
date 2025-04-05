@@ -1,8 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
+import requests
+import json
 import os
+from dotenv import load_dotenv
+from neo4j import GraphDatabase
 import pymysql
 
 # .envを読み込む
@@ -14,6 +17,12 @@ DB_PORT = int(os.getenv("DB_PORT", 3306))
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
+
+# Neo4j接続情報
+NEO4J_URI = os.getenv("NEO4J_URI")
+NEO4J_USER = os.getenv("NEO4J_USER")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
 app = FastAPI()
 
@@ -36,10 +45,46 @@ def get_connection():
         ssl={"ssl": {}}
     )
 
+def clear_db(tx):
+    tx.run('MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r')
+
+def add_person_node(tx, name):
+    tx.run('CREATE (p:Person {name: $name}) RETURN p', {'name': name})
+
+def add_friend_relationship(tx, name, friend_name=None):
+    if not friend_name:
+        tx.run('CREATE (p:Person {name: $name}) RETURN p', {'name': name})
+    else:
+        tx.run('MATCH (p:Person {name: $name}) '
+               'CREATE (p)-[:FRIEND]->(:Person {name: $friend_name})',
+               name=name, friend_name=friend_name)
+        
+def search_all(tx):
+    result = tx.run('MATCH (n) OPTIONAL MATCH (n)-[r]-() RETURN n,r')
+    return [r for r in result]
+
+def node_to_dict(node):
+    if isinstance(node, dict):
+        return node
+    elif hasattr(node, "items"):
+        return dict(node.items())
+    return node
+
 # Pingテスト用
 @app.get("/")
 def index():
     return {"message": "Pong!"}
+
+@app.get("/graph_info")
+def get_graph_info():
+    with driver.session() as session:
+        session.execute_write(clear_db)
+        session.execute_write(add_person_node, 'Taro')
+        session.execute_write(add_person_node, 'Hanako')
+        session.execute_write(add_friend_relationship, 'Taro', 'Hanako')
+        result = session.execute_read(search_all)
+        json_str = json.dumps(result, default=node_to_dict, indent=2)
+    return json_str
 
 # マイページ取得API
 @app.get("/api/my_page/{user_id}")
@@ -47,7 +92,6 @@ def get_my_page(user_id: int):
     try:
         conn = get_connection()
         with conn.cursor() as cursor:
-            # 基本情報 + 部署 + メールを取得
             cursor.execute("""
                 SELECT 
                     mp.name,
@@ -65,7 +109,6 @@ def get_my_page(user_id: int):
             if not mypage:
                 raise HTTPException(status_code=404, detail="マイページが見つかりません")
 
-            # スキル取得（description付き）
             cursor.execute("""
                 SELECT s.name, mps.type, mps.description
                 FROM my_page_skills mps
@@ -84,7 +127,6 @@ def get_my_page(user_id: int):
                 ]
             }
 
-            # 経験取得（description付き）
             cursor.execute("""
                 SELECT e.name, mpe.type, mpe.description
                 FROM my_page_experiences mpe
