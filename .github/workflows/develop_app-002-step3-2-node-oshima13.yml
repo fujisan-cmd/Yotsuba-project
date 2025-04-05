@@ -69,14 +69,6 @@ jobs:
           source venv/bin/activate
           pip install -r backend/requirements.txt
 
-      - name: Create .env file from GitHub Secrets
-        run: |
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> backend/.env
-          echo "DB_PORT=${{ secrets.DB_PORT }}" >> backend/.env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> backend/.env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> backend/.env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> backend/.env
-
       - name: Zip artifact for deployment
         run: |
           source venv/bin/activate
@@ -125,6 +117,11 @@ jobs:
       NEO4J_URI: ${{ secrets.NEO4J_URI }}
       NEO4J_USER: ${{ secrets.NEO4J_USER }}
       NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+      DB_HOST: ${{secrets.DB_HOST}}
+      DB_USER: ${{secrets.DB_USER}}
+      DB_PORT: ${{secrets.DB_PORT}}
+      DB_PASSWORD: ${{secrets.DB_PASSWORD}}
+      DB_NAME: ${{secrets.DB_NAME}}
 
     steps:
       - name: Download artifact from build job
