@@ -19,7 +19,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
-
+          
+      - name: Clean up previous installations
+        run: |
+          rm -rf node_modules package-lock.json
+          
       - name: npm install, build, and test
         env:
           NEXT_PUBLIC_API_ENDPOINT: ${{ secrets.NEXT_PUBLIC_API_ENDPOINT }}
