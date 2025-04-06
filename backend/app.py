@@ -7,16 +7,7 @@ import os
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 import pymysql
-
-# .envを読み込む
-load_dotenv()
-
-# 環境変数から接続情報を取得
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = int(os.getenv("DB_PORT", 3306))
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
+from connect_MySQL import get_connection
 
 # Neo4j接続情報
 NEO4J_URI = os.getenv("NEO4J_URI")
@@ -34,16 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-def get_connection():
-    return pymysql.connect(
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME,
-        cursorclass=pymysql.cursors.DictCursor,
-        ssl={"ssl": {}}
-    )
 
 def clear_db(tx):
     tx.run('MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r')
@@ -256,3 +237,9 @@ def create_my_page(data: MyPageCreateRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/search")
+def search(q: str = Query()):
+    if q is None:
+        return {"result": "検索キーワードを入力してください"}
+    return {"result": f"キーワードは {q} です"}

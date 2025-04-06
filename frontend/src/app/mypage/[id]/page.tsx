@@ -1,18 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
+import Link from 'next/link';
 import styles from './MyPage.module.css';
 import { fetchMyPage } from './fetchtest'; // import
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
-export default function MyPage() {
+export default function MyPage({params}: {params: Promise<{id: string}>}) {
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
   const [data, setData] = useState(null);
   const [tooltip, setTooltip] = useState({ visible: false, content: '', x: 0, y: 0 });
 
   useEffect(() => {
     if (API_ENDPOINT) {
-      fetchMyPage(1) // userId を渡す (ここでは固定値の '1' を使用)
+      fetchMyPage(id) // idで動的ルーティング
         .then(setData)
         .catch(error => {
           console.error("マイページの取得に失敗しました:", error);
@@ -39,7 +42,9 @@ export default function MyPage() {
     <div className={styles.container}>
       <div className={styles.pageWrapper}>
         <div className={styles.header}>
-          <button className={styles.topButton}>Top</button>
+          <Link href={"/search"}>
+            <button className={styles.topButton}>Top</button>
+          </Link>
           <button className={styles.mapButton}>関連度マップ</button>
         </div>
 

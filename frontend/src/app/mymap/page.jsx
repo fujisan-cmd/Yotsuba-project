@@ -1,11 +1,10 @@
 "use client";
 import { useState } from "react";
 import dynamic from "next/dynamic";
-// import ForceGraph2D from "react-force-graph-2d";
 import fetchtest from "./fetchtest";
 import neo4j_fetchtest from "./neo4j_fetchtest";
 
-// ✅ SSRを無効にしてForceGraph2Dを読み込む
+// SSRを無効にしてForceGraph2Dを読み込む
 const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
     ssr: false,
   });
