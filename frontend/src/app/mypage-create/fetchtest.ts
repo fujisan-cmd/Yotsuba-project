@@ -1,11 +1,4 @@
-'use client';
-
 import { useEffect, useState } from 'react';
-
-export interface OptionType {
-  id: number;
-  name: string;
-}
 
 export interface SkillEntry {
   name: string;
@@ -19,28 +12,32 @@ export interface ExperienceEntry {
   description: string;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT;
-
 export function useFormData() {
-  const [departments, setDepartments] = useState<OptionType[]>([]);
-  const [skills, setSkills] = useState<OptionType[]>([]);
-  const [experiences, setExperiences] = useState<OptionType[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [experiences, setExperiences] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/departments`)
-      .then((res) => res.json())
-      .then(setDepartments);
+    const fetchFormData = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/form-data`);
+        const data = await res.json();
 
-    fetch(`${BASE_URL}/api/skills`)
-      .then((res) => res.json())
-      .then(setSkills);
+        setDepartments(Array.isArray(data.departments) ? data.departments : []);
+        setSkills(Array.isArray(data.skills) ? data.skills : []);
+        setExperiences(Array.isArray(data.experiences) ? data.experiences : []);
+      } catch (error) {
+        console.error('フォームデータの取得に失敗しました:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    fetch(`${BASE_URL}/api/experiences`)
-      .then((res) => res.json())
-      .then(setExperiences);
+    fetchFormData();
   }, []);
 
-  return { departments, skills, experiences };
+  return { departments, skills, experiences, loading };
 }
 
 export async function submitMyPageForm(payload: {
@@ -53,21 +50,21 @@ export async function submitMyPageForm(payload: {
   experiences: ExperienceEntry[];
 }) {
   try {
-    const res = await fetch(`${BASE_URL}/api/my_page`, {
+    const userId = Math.floor(Math.random() * 100000); // 仮の user_id
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/my_page`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, user_id: userId }),
     });
 
     if (!res.ok) {
-      const detail = await res.text();
-      console.error('レスポンス本文:', detail);
+      console.error('送信エラー:', await res.text());
       return false;
     }
 
     return true;
-  } catch (e) {
-    console.error('送信エラー:', e);
+  } catch (error) {
+    console.error('フォーム送信中にエラーが発生しました:', error);
     return false;
   }
 }
