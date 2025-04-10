@@ -14,7 +14,7 @@ export default function Page(){
     return(
         <>
         <header>
-            <button>マイページ</button>
+            <button>マイページ 動作確認</button>
         </header>
         <main>
             <input 
