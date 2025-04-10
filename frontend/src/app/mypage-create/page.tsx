@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './MyPage.module.css';
 import { useFormData, submitMyPageForm, SkillEntry, ExperienceEntry } from './fetchtest';
 
 export default function CreateMyPage() {
-  const { departments, skills, experiences } = useFormData();
+  const { departments, skills, experiences, loading } = useFormData(); // ✅ loadingを取得
+  const router = useRouter(); // ✅ ルーターを使う
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -34,9 +36,17 @@ export default function CreateMyPage() {
       experiences: selectedExperiences,
     };
     const ok = await submitMyPageForm(payload);
-    if (ok) alert('マイページを作成しました！');
-    else alert('エラーが発生しました');
+    if (ok) {
+      alert('マイページを作成しました！');
+      router.push('/mypage-success'); // ✅ 成功後リダイレクト
+    } else {
+      alert('エラーが発生しました');
+    }
   };
+
+  if (loading) {
+    return <div className={styles.container}>読み込み中...</div>; // ✅ 読み込み中表示
+  }
 
   return (
     <div className={styles.container}>
