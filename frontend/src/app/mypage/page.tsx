@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from "next/navigation";
 import styles from './MyPage.module.css';
 import { fetchMyPage } from './fetchtest'; // import
 
@@ -9,8 +10,17 @@ const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 export default function MyPage() {
   const [data, setData] = useState(null);
   const [tooltip, setTooltip] = useState({ visible: false, content: '', x: 0, y: 0 });
+  const router = useRouter();
 
   useEffect(() => {
+    // localStorage.removeItem('token'); // 動作確認用
+    const token = localStorage.getItem('token');
+    if (!token){
+      alert("ログインしてください。");
+      router.push("./login");
+      return;
+    }
+
     if (API_ENDPOINT) {
       fetchMyPage(1) // userId を渡す (ここでは固定値の '1' を使用)
         .then(setData)

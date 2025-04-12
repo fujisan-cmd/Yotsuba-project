@@ -8,6 +8,8 @@ import os
 from dotenv import load_dotenv
 from neo4j import GraphDatabase
 import pymysql
+import jwt
+import datetime
 
 # .envを読み込む
 load_dotenv()
@@ -126,6 +128,40 @@ def check_email(email: Email):
 class UserBasic(BaseModel):
     email: str
     password: str
+
+def get_user_by_credentials(email, password):
+    """
+        DBにemailとPWで照合し、合致していれば次のようなJSONを返す
+        ex. return {'id': 1}
+    """
+    conn = get_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT id FROM users WHERE email = %s AND password = %s
+        """, (email, password))
+        user = cursor.fetchone()
+    conn.close()
+    return user
+
+JWT_KEY = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+def create_JWT(id: str):
+    payload = {
+        "user_id": id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2) # 有効期限
+    }
+    token = jwt.encode(payload, JWT_KEY, algorithm="HS256")
+    return token
+
+@app.post("/api/login")
+def login(request: UserBasic):
+    # print(request.email)
+    # print(request.password)
+    user = get_user_by_credentials(request.email, request.password)
+    if user:
+        token = create_JWT(id=user["id"])
+        return {"token": token}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.post("/api/register")
 def register_user(userinfo: UserBasic):

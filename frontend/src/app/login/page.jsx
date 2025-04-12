@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";  // ✅ NextAuth 読み込み
 import checkEmail from "./checkEmail";
+import login from "./login";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,6 +29,12 @@ export default function LoginPage() {
     const result = await checkEmail(email);
     if (result.exists){
       console.log("ログイン操作に移ります");
+      const res = await login(email, password);
+      console.log(res["token"]); // ハッシュ化されたtokenが表示されるはず
+      if (res["token"]){
+        localStorage.setItem('token', res["token"]); // ユーザーのブラウザにJWTを保存
+        router.push("./mypage");
+      }
     }
     else {
       alert("このメールアドレスは登録されていません。新規登録してください。");
