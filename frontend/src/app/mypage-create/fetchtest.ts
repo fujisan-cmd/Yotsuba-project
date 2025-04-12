@@ -43,26 +43,28 @@ export function useFormData() {
 export async function submitMyPageForm(payload: {
   name: string;
   email: string;
+  password: string;
   department_id: number;
   self_introduction: string;
   hobbies_skills: string;
   skills: SkillEntry[];
   experiences: ExperienceEntry[];
-}) {
+}): Promise<{ user_id: number } | false> {
   try {
-    const userId = Math.floor(Math.random() * 100000); // 仮の user_id
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/my_page`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/register_full`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...payload, user_id: userId }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
-      console.error('送信エラー:', await res.text());
+      const text = await res.text();
+      console.error('送信エラー:', text);
       return false;
     }
 
-    return true;
+    const result = await res.json(); // { user_id: number }
+    return result;
   } catch (error) {
     console.error('フォーム送信中にエラーが発生しました:', error);
     return false;

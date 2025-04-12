@@ -1,11 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
 import styles from './MyPage.module.css';
-import { fetchMyPage } from './fetchtest'; // import
-
-const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
+import { fetchMyPage } from './fetchtest';
 
 export default function MyPage() {
   const [data, setData] = useState(null);
@@ -21,18 +19,24 @@ export default function MyPage() {
       return;
     }
 
-    if (API_ENDPOINT) {
+    // if (API_ENDPOINT) {
       fetchMyPage(1) // userId を渡す (ここでは固定値の '1' を使用)
         .then(setData)
         .catch(error => {
           console.error("マイページの取得に失敗しました:", error);
         });
-    } else {
-      console.warn("環境変数 NEXT_PUBLIC_API_ENDPOINT が設定されていません。");
-    }
+    // } else {
+    //   console.warn("環境変数 NEXT_PUBLIC_API_ENDPOINT が設定されていません。");
+    // }
+
+    // fetchMyPage(Number(userId))
+    //   .then(setData)
+    //   .catch(error => {
+    //     console.error("マイページの取得に失敗しました:", error);
+    //   });
   }, []);
 
-  const handleMouseEnter = (description, e) => {
+  const handleMouseEnter = (description: string, e: any) => {
     if (description) {
       const rect = e.target.getBoundingClientRect();
       setTooltip({ visible: true, content: description, x: rect.left, y: rect.top - 30 });
@@ -43,16 +47,32 @@ export default function MyPage() {
     setTooltip({ visible: false, content: '', x: 0, y: 0 });
   };
 
-  if (!data) return <div>Loading...</div>;
+  const handleLogout = () => {
+    sessionStorage.clear();
+    router.push("/login");
+  };
+
+  if (!data) return <div className={styles.container}>Loading...</div>;
 
   return (
     <div className={styles.container}>
-      <div className={styles.pageWrapper}>
-        <div className={styles.header}>
-          <button className={styles.topButton}>Top</button>
-          <button className={styles.mapButton}>関連度マップ</button>
-        </div>
+      {/* ✅ ヘッダー背景 */}
+      <div className="absolute top-0 left-0 w-full h-[58px] bg-[#c3e99f] z-10" />
 
+      {/* ✅ ヘッダーのボタン群 */}
+      <div className="absolute top-2 right-4 z-20 flex gap-4">
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/")}>
+          Top
+        </button>
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => alert("関連度マップへ（仮）")}>
+          関連度マップ
+        </button>
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={handleLogout}>
+          ログアウト
+        </button>
+      </div>
+
+      <div className={styles.pageWrapper}>
         <div className={styles.mainContent}>
           <div className={styles.profileCard}>
             <div className={styles.photo}></div>
@@ -62,7 +82,6 @@ export default function MyPage() {
               <p><strong>メール:</strong> {data.email}</p>
             </div>
           </div>
-
 
           <div className={styles.detailSection}>
             <div className={styles.row}>
