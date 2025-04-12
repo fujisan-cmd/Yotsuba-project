@@ -10,6 +10,9 @@ from neo4j import GraphDatabase
 import pymysql
 import jwt
 import datetime
+from typing import Optional
+from fastapi import Request
+
 
 load_dotenv()
 
@@ -340,3 +343,126 @@ def get_my_page(user_id: int):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"取得失敗: {str(e)}")
+
+@app.get("/api/search_my_page")
+def search_my_page(
+    name: Optional[str] = None,
+    department: Optional[str] = None,
+    skill: Optional[str] = None,
+    experience: Optional[str] = None,
+    freeword: Optional[str] = None
+):
+    try:
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            base_sql = """
+                SELECT DISTINCT u.id, mp.name, d.name AS department, u.email,
+                                mp.self_introduction, mp.hobbies_skills
+                FROM users u
+                JOIN my_pages mp ON u.id = mp.user_id
+                LEFT JOIN departments d ON mp.department_id = d.id
+                LEFT JOIN my_page_skills mps ON u.id = mps.user_id
+                LEFT JOIN skills s ON mps.skill_id = s.id
+                LEFT JOIN my_page_experiences mpe ON u.id = mpe.user_id
+                LEFT JOIN experiences e ON mpe.experience_id = e.id
+            """
+            where_clauses = []
+            params = []
+
+            if name:
+                where_clauses.append("mp.name LIKE %s")
+                params.append(f"%{name}%")
+            if department:
+                where_clauses.append("d.name = %s")
+                params.append(department)
+            if skill:
+                where_clauses.append("s.name = %s")
+                params.append(skill)
+            if experience:
+                where_clauses.append("e.name = %s")
+                params.append(experience)
+            if freeword:
+                where_clauses.append("(mp.self_introduction LIKE %s OR mp.hobbies_skills LIKE %s)")
+                params.extend([f"%{freeword}%", f"%{freeword}%"])
+
+            if where_clauses:
+                base_sql += " WHERE " + " AND ".join(where_clauses)
+
+            # 🔍 ログ出力
+            print("SQL文:", base_sql)
+            print("パラメータ:", params)
+
+            cursor.execute(base_sql, params)
+            result = cursor.fetchall()
+
+        conn.close()
+        return result
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"検索失敗: {str(e)}")
+
+class UpdateRequest(BaseModel):
+    user_id: int
+    name: str
+    department: str
+    self_introduction: str
+    hobbies_skills: str
+    skills: list[SkillInput] = []
+    experiences: list[ExperienceInput] = []
+
+@app.post("/api/update_my_page")
+def update_my_page(data: UpdateRequest):
+    try:
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            # 🔁 部署ID取得
+            cursor.execute("SELECT id FROM departments WHERE name = %s", (data.department,))
+            dept_row = cursor.fetchone()
+            if not dept_row:
+                raise HTTPException(status_code=400, detail="指定された部署が存在しません")
+            department_id = dept_row["id"]
+
+            # ✏️ my_pages 更新
+            cursor.execute("""
+                UPDATE my_pages
+                SET name = %s, department_id = %s, self_introduction = %s, hobbies_skills = %s
+                WHERE user_id = %s
+            """, (data.name, department_id, data.self_introduction, data.hobbies_skills, data.user_id))
+
+            # 🔄 既存スキル・経験 削除
+            cursor.execute("DELETE FROM my_page_skills WHERE user_id = %s", (data.user_id,))
+            cursor.execute("DELETE FROM my_page_experiences WHERE user_id = %s", (data.user_id,))
+
+            # ➕ スキル再登録
+            for skill in data.skills:
+                cursor.execute("SELECT id FROM skills WHERE name = %s", (skill.name,))
+                row = cursor.fetchone()
+                skill_id = row["id"] if row else None
+                if not skill_id:
+                    cursor.execute("INSERT INTO skills (name) VALUES (%s)", (skill.name,))
+                    skill_id = cursor.lastrowid
+                cursor.execute("""
+                    INSERT INTO my_page_skills (user_id, skill_id, type, description)
+                    VALUES (%s, %s, %s, %s)
+                """, (data.user_id, skill_id, skill.type, skill.description))
+
+            # ➕ 経験再登録
+            for exp in data.experiences:
+                cursor.execute("SELECT id FROM experiences WHERE name = %s", (exp.name,))
+                row = cursor.fetchone()
+                exp_id = row["id"] if row else None
+                if not exp_id:
+                    cursor.execute("INSERT INTO experiences (name) VALUES (%s)", (exp.name,))
+                    exp_id = cursor.lastrowid
+                cursor.execute("""
+                    INSERT INTO my_page_experiences (user_id, experience_id, type, description)
+                    VALUES (%s, %s, %s, %s)
+                """, (data.user_id, exp_id, exp.type, exp.description))
+
+        conn.commit()
+        conn.close()
+
+        return {"message": "マイページを更新しました"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新失敗: {str(e)}")
