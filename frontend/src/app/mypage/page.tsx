@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import styles from './MyPage.module.css';
 import { fetchMyPage } from './fetchtest'; // import
+import LikeDisplay from '../components/LikeDisplay';
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
@@ -48,10 +49,13 @@ export default function MyPage() {
             <div className={styles.photo}></div>
             <div className={styles.profileInfo}>
               <h2>{data.name}</h2>
+              {/*likeDisplay を表示 */}
+          　　 <LikeDisplay count={data.like_count || 0} />
               <p><strong>部署:</strong> {data.department}</p>
               <p><strong>メール:</strong> {data.email}</p>
             </div>
           </div>
+        
 
 
           <div className={styles.detailSection}>
