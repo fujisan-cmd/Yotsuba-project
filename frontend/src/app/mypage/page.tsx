@@ -49,8 +49,11 @@ export default function MyPage() {
 
       {/* ✅ ヘッダーのボタン群 */}
       <div className="absolute top-2 right-4 z-20 flex gap-4">
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/")}>
-          Top
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/search")}>
+        検索画面
+        </button>
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/mypage-edit")}>
+        マイページ編集
         </button>
         <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => alert("関連度マップへ（仮）")}>
           関連度マップ
