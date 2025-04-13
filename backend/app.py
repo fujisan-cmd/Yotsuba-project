@@ -144,7 +144,10 @@ def login(request: UserBasic):
     user = get_user_by_credentials(request.email, request.password)
     if user:
         token = create_JWT(id=user["id"])
-        return {"token": token}
+        return {
+            "user_id": user["id"],
+            "token": token
+        }
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
