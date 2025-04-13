@@ -19,12 +19,19 @@ export default function MyPage() {
       return;
     }
 
+    fetchMyPage(token)
+      .then((data) => setData(data))
+      .catch(() => {
+        alert('認証に失敗しました');
+        localStorage.removeItem(token);
+        router.push("./login");
+      });
     // if (API_ENDPOINT) {
-      fetchMyPage(1) // userId を渡す (ここでは固定値の '1' を使用)
-        .then(setData)
-        .catch(error => {
-          console.error("マイページの取得に失敗しました:", error);
-        });
+      // fetchMyPage(1) // userId を渡す (ここでは固定値の '1' を使用)
+      //   .then(setData)
+      //   .catch(error => {
+      //     console.error("マイページの取得に失敗しました:", error);
+      //   });
     // } else {
     //   console.warn("環境変数 NEXT_PUBLIC_API_ENDPOINT が設定されていません。");
     // }

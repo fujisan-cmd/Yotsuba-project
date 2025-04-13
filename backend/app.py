@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Body
 from pydantic import BaseModel
@@ -153,6 +153,84 @@ def login(request: UserBasic):
 #     #     result_json = json.loads(result)
 #     #     return result_json if result_json else None
 #     # return None
+def verify_token(Authorization: str = Header(None)):
+    """
+        戻り値の例: {'user_id': 99222, 'exp': 1744469405}
+    """
+    if not Authorization:
+        raise HTTPException(status_code=401, detail="Authorization header is missing")
+    
+    try:
+        token = Authorization.split(" ")[1]
+        payload = jwt.decode(token, JWT_KEY, algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.get("/api/me")
+def get_me(user_payload=Depends(verify_token)):
+    user_id = user_payload["user_id"]
+
+    # decodeして得たuser_idをもとにDBから情報を取得
+    try:
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    users.id, users.email, my_pages.name, 
+                    departments.name AS department,
+                    my_pages.self_introduction, my_pages.hobbies_skills
+                FROM users
+                JOIN my_pages ON users.id = my_pages.user_id
+                LEFT JOIN departments ON my_pages.department_id = departments.id
+                WHERE users.id = %s
+            """, (user_id,))
+            user_info = cursor.fetchone()
+
+            if not user_info:
+                raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+            
+            cursor.execute("""
+                SELECT 
+                    skills.name, my_page_skills.type, my_page_skills.description
+                FROM my_page_skills
+                JOIN skills ON my_page_skills.skill_id = skills.id
+                WHERE my_page_skills.user_id = %s
+            """, (user_id,))
+            skills_rows = cursor.fetchall()
+            skills = {
+                "can": [s for s in skills_rows if s["type"] == "can"],
+                "will": [s for s in skills_rows if s["type"] == "will"]
+            }
+
+            cursor.execute("""
+                SELECT 
+                    experiences.name, my_page_experiences.type, my_page_experiences.description
+                FROM my_page_experiences
+                JOIN experiences ON my_page_experiences.experience_id = experiences.id
+                WHERE my_page_experiences.user_id = %s
+            """, (user_id,))
+            exps_rows = cursor.fetchall()
+            experiences = {
+                "can": [e for e in exps_rows if e["type"] == "can"],
+                "will": [e for e in exps_rows if e["type"] == "will"]
+            }
+        conn.close()
+        return {
+            "id": user_info["id"],
+            "email": user_info["email"],
+            "name": user_info["name"],
+            "department": user_info["department"],
+            "self_introduction": user_info["self_introduction"],
+            "hobbies_skills": user_info["hobbies_skills"],
+            "skills": skills,
+            "experiences": experiences
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"取得失敗: {str(e)}")
+
 
 @app.get("/graph_info")
 def get_graph_info():
@@ -263,9 +341,66 @@ def register_full(data: RegisterFullRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"登録失敗: {str(e)}")
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
+def fetch_user_data():
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT 
+                    my_pages.user_id,
+                    my_pages.hobbies_skills,
+                    my_pages.self_introduction,
+                    GROUP_CONCAT(DISTINCT skills.name),
+                    GROUP_CONCAT(DISTINCT experiences.name)
+                FROM my_pages
+                LEFT JOIN my_page_skills
+                    ON my_page_skills.user_id = my_pages.user_id
+                LEFT JOIN skills
+                    ON skills.id = my_page_skills.skill_id
+                LEFT JOIN my_page_experiences
+                    ON my_page_experiences.user_id = my_pages.user_id
+                LEFT JOIN experiences
+                    ON experiences.id = my_page_experiences.experience_id
+                GROUP BY my_pages.user_id, my_pages.hobbies_skills, my_pages.self_introduction;
+            """)
+            rows = cursor.fetchall()  # 辞書形式で全行取得
+    finally:
+        conn.close()
+
+    # 取得した各行の「GROUP_CONCAT」結果をカンマ区切り文字列からリストに変換
+    user_data = []
+    for row in rows:
+        skills_str = row.get("GROUP_CONCAT(DISTINCT skills.name)")
+        experiences_str = row.get("GROUP_CONCAT(DISTINCT experiences.name)")
+        
+        skills = skills_str.split(',') if skills_str else []
+        experiences = experiences_str.split(',') if experiences_str else []
+
+        user_entry = {
+            "user_id": row["user_id"],
+            "hobbies_skills": row["hobbies_skills"],
+            "self_introduction": row["self_introduction"],
+            "skills": skills,
+            "experiences": experiences
+        }
+        user_data.append(user_entry)
+    
+    # 念のためuser_id昇順に並べ直し
+    sorted_data = sorted(user_data, key=lambda d: d["user_id"])
+    hobbies = [user["hobbies_skills"] for user in sorted_data]
+    self_intro = [user["self_introduction"] for user in sorted_data]
+    print("hobbies:", hobbies)
+    print("self_intro:", self_intro)
+    return user_data
+
+@app.get("/api/DBfetch")
+def calc_similarity():
+    result = fetch_user_data()
+    return {"status": "success"}
+
+# class LoginRequest(BaseModel):
+#     email: str
+#     password: str
 
 # @app.post("/api/login")
 # def login(data: LoginRequest):
@@ -284,59 +419,59 @@ class LoginRequest(BaseModel):
 #     finally:
 #         conn.close()
 
-@app.get("/api/my_page/{user_id}")
-def get_my_page(user_id: int):
-    try:
-        conn = get_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT u.id, u.email, mp.name, d.name AS department,
-                       mp.self_introduction, mp.hobbies_skills
-                FROM users u
-                JOIN my_pages mp ON u.id = mp.user_id
-                LEFT JOIN departments d ON mp.department_id = d.id
-                WHERE u.id = %s
-            """, (user_id,))
-            user_info = cursor.fetchone()
+# @app.get("/api/my_page/{user_id}")
+# def get_my_page(user_id: int):
+#     try:
+#         conn = get_connection()
+#         with conn.cursor() as cursor:
+#             cursor.execute("""
+#                 SELECT u.id, u.email, mp.name, d.name AS department,
+#                        mp.self_introduction, mp.hobbies_skills
+#                 FROM users u
+#                 JOIN my_pages mp ON u.id = mp.user_id
+#                 LEFT JOIN departments d ON mp.department_id = d.id
+#                 WHERE u.id = %s
+#             """, (user_id,))
+#             user_info = cursor.fetchone()
 
-            if not user_info:
-                raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
+#             if not user_info:
+#                 raise HTTPException(status_code=404, detail="ユーザーが見つかりません")
 
-            cursor.execute("""
-                SELECT s.name, mps.type, mps.description
-                FROM my_page_skills mps
-                JOIN skills s ON mps.skill_id = s.id
-                WHERE mps.user_id = %s
-            """, (user_id,))
-            skills_rows = cursor.fetchall()
-            skills = {
-                "can": [s for s in skills_rows if s["type"] == "can"],
-                "will": [s for s in skills_rows if s["type"] == "will"]
-            }
+#             cursor.execute("""
+#                 SELECT s.name, mps.type, mps.description
+#                 FROM my_page_skills mps
+#                 JOIN skills s ON mps.skill_id = s.id
+#                 WHERE mps.user_id = %s
+#             """, (user_id,))
+#             skills_rows = cursor.fetchall()
+#             skills = {
+#                 "can": [s for s in skills_rows if s["type"] == "can"],
+#                 "will": [s for s in skills_rows if s["type"] == "will"]
+#             }
 
-            cursor.execute("""
-                SELECT e.name, mpe.type, mpe.description
-                FROM my_page_experiences mpe
-                JOIN experiences e ON mpe.experience_id = e.id
-                WHERE mpe.user_id = %s
-            """, (user_id,))
-            exps_rows = cursor.fetchall()
-            experiences = {
-                "can": [e for e in exps_rows if e["type"] == "can"],
-                "will": [e for e in exps_rows if e["type"] == "will"]
-            }
+#             cursor.execute("""
+#                 SELECT e.name, mpe.type, mpe.description
+#                 FROM my_page_experiences mpe
+#                 JOIN experiences e ON mpe.experience_id = e.id
+#                 WHERE mpe.user_id = %s
+#             """, (user_id,))
+#             exps_rows = cursor.fetchall()
+#             experiences = {
+#                 "can": [e for e in exps_rows if e["type"] == "can"],
+#                 "will": [e for e in exps_rows if e["type"] == "will"]
+#             }
 
-        conn.close()
-        return {
-            "id": user_info["id"],
-            "email": user_info["email"],
-            "name": user_info["name"],
-            "department": user_info["department"],
-            "self_introduction": user_info["self_introduction"],
-            "hobbies_skills": user_info["hobbies_skills"],
-            "skills": skills,
-            "experiences": experiences
-        }
+#         conn.close()
+#         return {
+#             "id": user_info["id"],
+#             "email": user_info["email"],
+#             "name": user_info["name"],
+#             "department": user_info["department"],
+#             "self_introduction": user_info["self_introduction"],
+#             "hobbies_skills": user_info["hobbies_skills"],
+#             "skills": skills,
+#             "experiences": experiences
+#         }
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"取得失敗: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"取得失敗: {str(e)}")
