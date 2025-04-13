@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { signIn } from "next-auth/react";  // ✅ NextAuth 読み込み
 import checkEmail from "./checkEmail";
 import login from "./login";
 
@@ -25,37 +23,34 @@ export default function LoginPage() {
       return;
     }
 
-    const result = await checkEmail(email);
-    if (result.exists){
-      console.log("ログイン操作に移ります");
-      const res = await login(email, password);
-      console.log(res["token"]); // ハッシュ化されたtokenが表示されるはず
-      if (res["token"]){
-        localStorage.setItem('token', res["token"]); // ユーザーのブラウザにJWTを保存
-        router.push("./mypage");
+    try {
+      const result = await checkEmail(email);
+      if (result.exists) {
+        console.log("ログイン操作に移ります");
+        const res = await login(email, password);
+        console.log("レスポンス:", res);
+
+        if (res.token) {
+          // ✅ セッションストレージに保存（toString安全チェック）
+          sessionStorage.setItem("token", res.token);
+
+          if (res.user_id !== undefined && res.user_id !== null) {
+            sessionStorage.setItem("user_id", res.user_id.toString());
+          } else {
+            console.warn("user_id がレスポンスに含まれていません。");
+          }
+
+          router.push("/mypage");
+        } else {
+          alert("ログインに失敗しました。サーバーからの応答が不正です。");
+        }
+      } else {
+        alert("このメールアドレスは登録されていません。新規登録してください。");
       }
+    } catch (error) {
+      console.error("ログインエラー:", error);
+      alert("ログイン中にエラーが発生しました。");
     }
-    else {
-      alert("このメールアドレスは登録されていません。新規登録してください。");
-      return;
-    }
-
-    // try {
-    //   const res = await fetch(`${process.env.NEXT_PUBLIC_API_ENDPOINT}/api/login`, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ email, password }),
-    //   });
-
-    //   if (!res.ok) throw new Error("認証失敗");
-
-    //   const data = await res.json();
-    //   sessionStorage.setItem("user_id", data.user_id);
-    //   router.push("/mypage");
-    // } catch (err) {
-    //   alert("ログインに失敗しました。メールアドレスかパスワードが違います。");
-    //   console.error(err);
-    // }
   };
 
   const handleGotoRegister = () => {

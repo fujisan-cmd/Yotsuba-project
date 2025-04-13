@@ -2,25 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './MyPage.module.css';
-import { fetchMyPage } from './fetchtest';
+import styles from '../mypage/MyPage.module.css';
+import { fetchMyPage } from '../mypage/fetchtest';
 
-export default function MyPage() {
+export default function OtherUserPage() {
   const [data, setData] = useState(null);
   const [tooltip, setTooltip] = useState({ visible: false, content: '', x: 0, y: 0 });
   const router = useRouter();
 
   useEffect(() => {
-    const userId = sessionStorage.getItem("user_id");
+    const userId = sessionStorage.getItem("target_user_id");
     if (!userId) {
-      router.push("/login");
+      alert("ユーザー情報が見つかりません");
+      router.push("/search");
       return;
     }
 
     fetchMyPage(Number(userId))
       .then(setData)
       .catch(error => {
-        console.error("マイページの取得に失敗しました:", error);
+        console.error("他ユーザーのマイページ取得に失敗:", error);
       });
   }, []);
 
@@ -35,9 +36,8 @@ export default function MyPage() {
     setTooltip({ visible: false, content: '', x: 0, y: 0 });
   };
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    router.push("/login");
+  const handleBack = () => {
+    router.push("/search-results");
   };
 
   if (!data) return <div className={styles.container}>Loading...</div>;
@@ -45,21 +45,12 @@ export default function MyPage() {
   return (
     <div className={styles.container}>
       {/* ✅ ヘッダー背景 */}
-      <div className="absolute top-0 left-0 w-full h-[58px] bg-[#c3e99f] z-10" />
+      <div className="absolute top-0 left-0 w-full h-[58px] bg-[#fcd34d] z-10" />
 
-      {/* ✅ ヘッダーのボタン群 */}
+      {/* ✅ ヘッダーの戻るボタン */}
       <div className="absolute top-2 right-4 z-20 flex gap-4">
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/search")}>
-        検索画面
-        </button>
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/mypage-edit")}>
-        マイページ編集
-        </button>
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => alert("関連度マップへ（仮）")}>
-          関連度マップ
-        </button>
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={handleLogout}>
-          ログアウト
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={handleBack}>
+          ← 検索結果に戻る
         </button>
       </div>
 
