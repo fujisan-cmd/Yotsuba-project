@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:8000';
 
 /**
  * 部署・スキル・経験などの選択肢を取得
