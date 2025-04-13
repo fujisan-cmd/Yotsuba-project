@@ -1,6 +1,6 @@
 // fetchSearch.js
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
 
 export default async function fetchSearchResults(params) {
   const query = new URLSearchParams();
