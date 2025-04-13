@@ -11,16 +11,17 @@ export default function MyPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const userId = sessionStorage.getItem("user_id");
-    if (!userId) {
+    const token = sessionStorage.getItem("token");
+    if (!token) {
       router.push("/login");
       return;
     }
 
-    fetchMyPage(Number(userId))
-      .then(setData)
-      .catch(error => {
-        console.error("マイページの取得に失敗しました:", error);
+    fetchMyPage(token)
+      .then((data) => setData(data))
+      .catch(() => {
+        alert('認証に失敗しました');
+        router.push("./login");
       });
   }, []);
 

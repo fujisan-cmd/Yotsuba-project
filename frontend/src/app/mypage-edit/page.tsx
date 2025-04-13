@@ -24,9 +24,10 @@ export default function EditMyPage() {
 
   useEffect(() => {
     const userId = sessionStorage.getItem('user_id');
+    const token = sessionStorage.getItem('token');
     if (!userId) return router.push('/login');
 
-    Promise.all([fetchFormData(), fetchMyPage(Number(userId))])
+    Promise.all([fetchFormData(), fetchMyPage(token)])
       .then(([options, user]) => {
         setFormOptions(options);
         setName(user.name || '');
@@ -67,6 +68,7 @@ export default function EditMyPage() {
 
   const handleSubmit = async () => {
     const userId = sessionStorage.getItem('user_id');
+    const token = sessionStorage.getItem('token');
     if (!userId) return;
 
     const payload = {
@@ -79,7 +81,7 @@ export default function EditMyPage() {
     };
 
     try {
-      await updateMyPage(Number(userId), payload);
+      await updateMyPage(token, payload);
       alert('更新しました！');
       router.push('/mypage');
     } catch {

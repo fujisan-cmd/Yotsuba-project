@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../mypage/MyPage.module.css';
-import { fetchMyPage } from '../mypage/fetchtest';
+import { fetchMyPage } from './fetchtest';
 
 export default function OtherUserPage() {
   const [data, setData] = useState(null);
