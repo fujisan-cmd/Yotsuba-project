@@ -11,29 +11,17 @@ export default function MyPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // localStorage.removeItem('token'); // 動作確認用
-    const token = localStorage.getItem('token');
-    if (!token){
-      alert("ログインしてください。");
-      router.push("./login");
+    const userId = sessionStorage.getItem("user_id");
+    if (!userId) {
+      router.push("/login");
       return;
     }
 
-    // if (API_ENDPOINT) {
-      fetchMyPage(1) // userId を渡す (ここでは固定値の '1' を使用)
-        .then(setData)
-        .catch(error => {
-          console.error("マイページの取得に失敗しました:", error);
-        });
-    // } else {
-    //   console.warn("環境変数 NEXT_PUBLIC_API_ENDPOINT が設定されていません。");
-    // }
-
-    // fetchMyPage(Number(userId))
-    //   .then(setData)
-    //   .catch(error => {
-    //     console.error("マイページの取得に失敗しました:", error);
-    //   });
+    fetchMyPage(Number(userId))
+      .then(setData)
+      .catch(error => {
+        console.error("マイページの取得に失敗しました:", error);
+      });
   }, []);
 
   const handleMouseEnter = (description: string, e: any) => {
@@ -61,8 +49,11 @@ export default function MyPage() {
 
       {/* ✅ ヘッダーのボタン群 */}
       <div className="absolute top-2 right-4 z-20 flex gap-4">
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/")}>
-          Top
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/search")}>
+        検索画面
+        </button>
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/mypage-edit")}>
+        マイページ編集
         </button>
         <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => alert("関連度マップへ（仮）")}>
           関連度マップ
