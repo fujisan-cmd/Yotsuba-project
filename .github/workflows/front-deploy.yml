@@ -34,6 +34,7 @@ jobs:
           mkdir deploy
           cp -r frontend/.next/standalone/. ./deploy
           cp -r frontend/.next/static/. ./deploy/.next/static
+          cp -r frontend/public/. ./deploy/public
         working-directory: .
 
       - name: Zip artifact for deployment
