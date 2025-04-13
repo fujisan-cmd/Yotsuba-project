@@ -11,13 +11,13 @@ export default async function registerUser(formData) {
     }
   
     // localStorage に保存（Next.js 13+ではクライアント側でしか使えない点に注意）
-    try {
-      localStorage.setItem("reg_email", email);
-      localStorage.setItem("reg_password", password);
-      return true;
-    } catch (err) {
-      console.error("localStorage 保存に失敗:", err);
-      return false;
-    }
+    // try {
+    //   localStorage.setItem("reg_email", email);
+    //   localStorage.setItem("reg_password", password);
+    //   return true;
+    // } catch (err) {
+    //   console.error("localStorage 保存に失敗:", err);
+    //   return false;
+    // }
   }
   
