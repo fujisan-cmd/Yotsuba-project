@@ -18,6 +18,7 @@ export default function Page() {
   const fixedWidth = 1000;
   const fixedHeight = 600;
 
+  // 凡例の色設定
   const legendItems = [
     { type: "skill", label: "スキル", color: "#4a90e2" },
     { type: "experience", label: "経験", color: "#f5a623" },
@@ -25,6 +26,7 @@ export default function Page() {
     { type: "intro", label: "紹介", color: "#d0021b" },
   ];
 
+  // グラフ取得
   useEffect(() => {
     const fetchData = async () => {
       const token = sessionStorage.getItem("token");
@@ -45,6 +47,7 @@ export default function Page() {
     fetchData();
   }, [router]);
 
+  // ズームフィット
   useEffect(() => {
     if (graphic && graphRef.current) {
       setTimeout(() => {
@@ -55,25 +58,9 @@ export default function Page() {
 
   return (
     <div className={styles.container}>
-      <div className="absolute top-0 left-0 w-full h-[58px] bg-[#c3e99f] z-10" />
-      <div className="absolute top-2 right-4 z-20 flex gap-4">
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/search")}>
-          検索画面
-        </button>
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/mypage")}>
-          マイページ
-        </button>
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => {
-          sessionStorage.removeItem("token");
-          router.push("/login");
-        }}>
-          ログアウト
-        </button>
-      </div>
-
       <div className={styles.pageWrapper}>
         <h2 style={{ fontSize: "24px", fontWeight: "bold", color: "#096dd9", marginBottom: "20px" }}>
-          関連度マップ
+          関連度グラフテストページ
         </h2>
 
         {loading ? (
@@ -97,10 +84,6 @@ export default function Page() {
                 width={fixedWidth}
                 height={fixedHeight}
                 linkWidth={(link) => link.similarity * 2}
-                onNodeClick={(node) => {
-                  sessionStorage.setItem("target_user_id", node.id);
-                  router.push("/mypage-other2");
-                }}
                 nodeCanvasObject={(node, ctx, globalScale) => {
                   const label = node.name;
                   const fontSize = 20 / globalScale;
@@ -117,9 +100,11 @@ export default function Page() {
                   ctx.font = `${fontSize}px Sans-Serif`;
                   ctx.textAlign = "center";
                   ctx.textBaseline = "middle";
+
                   ctx.lineWidth = 1;
                   ctx.strokeStyle = "white";
                   ctx.strokeText(label, node.x, node.y);
+
                   ctx.fillStyle = "black";
                   ctx.fillText(label, node.x, node.y);
                 }}
@@ -177,6 +162,7 @@ export default function Page() {
               />
             </div>
 
+            {/* ▼ 凡例の表示 */}
             <div
               style={{
                 width: `${fixedWidth}px`,
@@ -198,7 +184,7 @@ export default function Page() {
                       borderRadius: "3px",
                     }}
                   />
-                  <span style={{ fontSize: "20px", color: "#333" }}>{item.label}</span>
+                  <span style={{ fontSize: "25px", color: "#333" }}>{item.label}</span>
                 </div>
               ))}
             </div>

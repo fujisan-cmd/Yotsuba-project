@@ -9,6 +9,12 @@ const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), {
   ssr: false,
 });
 
+const handleLogout = () => {
+  // 例: セッション削除してログインページへ遷移
+  sessionStorage.removeItem("token");
+  router.push("/login");
+};
+
 export default function Page() {
   const [graphic, setgraphic] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -55,18 +61,18 @@ export default function Page() {
 
   return (
     <div className={styles.container}>
+      {/* ✅ ヘッダー背景 */}
       <div className="absolute top-0 left-0 w-full h-[58px] bg-[#c3e99f] z-10" />
+
+      {/* ✅ ヘッダーのボタン群 */}
       <div className="absolute top-2 right-4 z-20 flex gap-4">
         <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/search")}>
-          検索画面
+        検索画面
         </button>
         <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => router.push("/mypage")}>
-          マイページ
+        マイページ
         </button>
-        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={() => {
-          sessionStorage.removeItem("token");
-          router.push("/login");
-        }}>
+        <button className="px-4 py-2 bg-white rounded hover:bg-gray-100" onClick={handleLogout}>
           ログアウト
         </button>
       </div>
@@ -97,10 +103,6 @@ export default function Page() {
                 width={fixedWidth}
                 height={fixedHeight}
                 linkWidth={(link) => link.similarity * 2}
-                onNodeClick={(node) => {
-                  sessionStorage.setItem("target_user_id", node.id);
-                  router.push("/mypage-other2");
-                }}
                 nodeCanvasObject={(node, ctx, globalScale) => {
                   const label = node.name;
                   const fontSize = 20 / globalScale;
@@ -117,9 +119,11 @@ export default function Page() {
                   ctx.font = `${fontSize}px Sans-Serif`;
                   ctx.textAlign = "center";
                   ctx.textBaseline = "middle";
+
                   ctx.lineWidth = 1;
                   ctx.strokeStyle = "white";
                   ctx.strokeText(label, node.x, node.y);
+
                   ctx.fillStyle = "black";
                   ctx.fillText(label, node.x, node.y);
                 }}
@@ -177,6 +181,7 @@ export default function Page() {
               />
             </div>
 
+            {/* ▼ 凡例の表示 */}
             <div
               style={{
                 width: `${fixedWidth}px`,
@@ -210,3 +215,16 @@ export default function Page() {
     </div>
   );
 }
+
+// ▼ 共通ボタンスタイル
+const buttonStyle = {
+  backgroundColor: "#fff",
+  color: "#333",
+  padding: "8px 16px",
+  border: "1px solid #ccc",
+  borderRadius: "6px",
+  fontSize: "14px",
+  fontWeight: "bold",
+  cursor: "pointer",
+  boxShadow: "1px 1px 3px rgba(0,0,0,0.1)"
+};
