@@ -66,7 +66,12 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
-        
+      
+      - name: Move files to deployment root # 追加: backendディレクトリ内のファイルをルート直下に移動させる
+        run: |
+          mv backend/* .
+          rm -rf backend
+
       - name: Wait before deploy (for avoiding 409 Conflict)
         run: sleep 15
 
