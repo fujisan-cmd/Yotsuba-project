@@ -32,7 +32,7 @@ jobs:
 
       - name: Zip artifact for deployment
         run: |
-          zip -j release.zip backend/app.py backend/requirements.txt backend/output_embeddings
+          zip -r release.zip backend/app.py backend/requirements.txt backend/output_embeddings
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
